@@ -48,7 +48,7 @@ public class HttpExecute{
 		headerList.put("CheckSum", CheckSum);
 		logger.info("url=" +  url + ",参数=" + params.toString() + ",请求头="+headerList.toString());
 		long stime = System.currentTimeMillis();
-		String result = client.postSms(url, headerList, params);
+		String result = client.post(url, headerList, params);
 		long timeCost = System.currentTimeMillis() - stime;
 		logger.info("http post success, result=" +  new String(result.getBytes(),"utf-8") + ",url=" + url + ",time cost=" + timeCost);
 

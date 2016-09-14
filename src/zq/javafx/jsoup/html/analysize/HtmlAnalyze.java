@@ -25,9 +25,11 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.web.HTMLEditor;
 import javafx.stage.Stage;
 import zq.javafx.jsoup.html.data.InterfaceData;
 import zq.javafx.jsoup.html.data.RequestParam;
@@ -35,7 +37,8 @@ import zq.javafx.jsoup.html.http.HttpExecute;
 
 public class HtmlAnalyze extends Application{
 	private static Logger logger = Logger.getLogger(HtmlAnalyze.class);
-	private TextField textField = null;
+	private TextField searchKey = null;	//接口搜索关键字
+	private TextField responseShow = null;	//接口响应
 	private static final ObservableList<String> actionData = FXCollections.observableArrayList();		// 接口功能列表
 	private ObservableList<RequestParam> interfaceParam = FXCollections.observableArrayList();	// 接口参数
 	private HashMap<String, InterfaceData> maps = new HashMap<>();
@@ -47,52 +50,54 @@ public class HtmlAnalyze extends Application{
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		VBox root = new VBox();
+		BorderPane borderPane = new BorderPane();
+		VBox vBox = new VBox();
 		HBox hBox = new HBox();
 		TableView<RequestParam> tvParam = new TableView<>(interfaceParam);
-		Button button = new Button("获取接口列表");
+		Button button = new Button("搜索接口");
 		Button btnHttp = new Button("执行http请求");
 		ListView<String> actions = new ListView<>(actionData);
-		textField = new TextField("我是文本...");
+		searchKey = new TextField("");
+		responseShow = new TextField("response");
 
 		// 初始化
 		createTableViewForParam(tvParam);
 		tvParam.setEditable(true);	//列元素可编辑，tableview编辑属性需要设置为true
 
+//		// 接口列表初始化
+		readHtmlForRequest("", 1);
+        //填充列表显示的内容,自动刷新
+        mapIterateForList(maps, null);
+        logger.info("总共有"+maps.size()+"个接口");
+		
 		// 事件处理
 		// 获取接口列表按钮事件的处理
 		button.setOnAction(event -> {
-            try {
-                readHtmlForRequest("", 1);
-                //填充列表显示的内容,自动刷新
-                mapIterateForList(maps);
-                logger.info("总共有"+maps.size()+"个接口");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+			mapIterateForList(maps, searchKey.getText());
         });
 		// 列表选择事件
 		actions.getSelectionModel().selectedItemProperty().addListener(
 				(ObservableValue<? extends String> ov, String old_val, String new_val)->{
-					textField.setText(maps.get(new_val).toString());
 					createInterfaceParam(new_val);
 					interfaceKey = new_val;
 				}
 		);
 		// 执行http请求
 		btnHttp.setOnAction(event -> {
-			HttpExecute.httpPost(getParamAll(), maps.get(interfaceKey).getUrl());
+			if(maps.size()>0){
+				responseShow.setText( HttpExecute.httpPost(getParamAll(), maps.get(interfaceKey).getUrl()) );
+			}
 		});
 
-		hBox.getChildren().addAll(textField, button);
-		root.getChildren().add(hBox);
-		hBox = new HBox();
-		hBox.getChildren().add(actions);
-		//设计接口参数
-		hBox.getChildren().add(tvParam);
-		root.getChildren().add(hBox);
-		root.getChildren().add(btnHttp);
-		Scene scene = new Scene(root, 1080, 600, Color.WHITE);
+		hBox.getChildren().addAll(searchKey, button);
+		borderPane.setTop(hBox);
+		borderPane.setLeft(actions);		//接口说明
+		borderPane.setCenter(tvParam);		//接口参数
+		vBox.getChildren().add(btnHttp);	//提交请求
+		borderPane.setRight(vBox);
+		borderPane.setBottom(responseShow);
+		
+		Scene scene = new Scene(borderPane, 1080, 600, Color.WHITE);
 
 		primaryStage.setScene(scene);
 		primaryStage.show();
@@ -105,7 +110,7 @@ public class HtmlAnalyze extends Application{
 	private void createTableViewForParam(TableView<RequestParam> tvParam){
 		TableColumn<RequestParam, String> nameColume = new TableColumn<>("参数");
 		TableColumn<RequestParam, String> typeColume = new TableColumn<>("参数类型");
-		TableColumn<RequestParam, String> needColume = new TableColumn<>("是佛必须");
+		TableColumn<RequestParam, String> needColume = new TableColumn<>("是否必须");
 		TableColumn<RequestParam, String> decColume = new TableColumn<>("说明");
 		TableColumn<RequestParam, String> inColume = new TableColumn<>("输入");
 
@@ -183,13 +188,23 @@ public class HtmlAnalyze extends Application{
 	 * hash map遍历，列表框显示内容
 	 * @param maps
 	 */
-	public void mapIterateForList(HashMap<String, InterfaceData> maps){
+	public void mapIterateForList(HashMap<String, InterfaceData> maps, String keyword){
+		//清空数据
+		if(!actionData.isEmpty()){
+			actionData.clear();
+		}
 		Iterator iterator = maps.entrySet().iterator();
 		while(iterator.hasNext()){
 			Map.Entry<String, InterfaceData> entry = (Entry<String, InterfaceData>) iterator.next();
 			String key = entry.getKey();
 			InterfaceData requestData = entry.getValue();
-			actionData.add( requestData.getMapKey() );
+			if(null==keyword || keyword.equals("")){
+				actionData.add( requestData.getMapKey() );
+			}else{
+				if(key.contains(keyword)){
+					actionData.add( requestData.getMapKey() );
+				}
+			}
 		}
 	}
 
