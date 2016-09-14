@@ -1,0 +1,11 @@
+[INFO ]09-14,00:20:26,691,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[WARN ]09-14,00:20:28,829,[Class]HtmlAnalyze, [Method]createInterfaceParam, JavaFX Application Thread, 接口参数解析错误:{"参数":"{\"badge\":false,\"needPushNick\":false,\"route\":false}"}
+[INFO ]09-14,00:28:12,400,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[INFO ]09-14,22:54:44,949,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[INFO ]09-14,22:57:02,618,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[INFO ]09-14,22:59:48,151,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[INFO ]09-14,23:00:13,007,[Class]HttpExecute, [Method]commonRequest, JavaFX Application Thread, url=http://223.252.220.223/nimserver/user/refreshToken.action,参数=[name=accid, value=null],请求头={Nonce=12345, CheckSum=74cfbf9358cb15eeb8f7de19d075a4448828ea10, AppKey=null, CurTime=1473865212}
+[INFO ]09-14,23:00:13,440,[Class]HttpExecute, [Method]commonRequest, JavaFX Application Thread, http post success, result={"desc":"bad http headers","code":414},url=http://223.252.220.223/nimserver/user/refreshToken.action,time cost=431
+[INFO ]09-14,23:00:53,942,[Class]HtmlAnalyze, [Method]lambda$0, JavaFX Application Thread, 总共有76个接口
+[INFO ]09-14,23:01:02,982,[Class]HttpExecute, [Method]commonRequest, JavaFX Application Thread, url=http://223.252.220.223/nimserver/team/remove.action,参数=[name=tid, value=null, name=owner, value=null],请求头={Nonce=12345, CheckSum=04bead5cb9da0f7a668e9a9fe0b2d220a1075174, AppKey=fe416640c8e8a72734219e1847ad2547, CurTime=1473865262}
+[INFO ]09-14,23:01:03,286,[Class]HttpExecute, [Method]commonRequest, JavaFX Application Thread, http post success, result={"desc":"tid is empty","code":414},url=http://223.252.220.223/nimserver/team/remove.action,time cost=302
