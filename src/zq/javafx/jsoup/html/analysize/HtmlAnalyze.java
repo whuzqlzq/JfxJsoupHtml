@@ -24,13 +24,18 @@ import javafx.application.Application;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.web.HTMLEditor;
 import javafx.stage.Stage;
+import sun.print.resources.serviceui;
 import zq.javafx.jsoup.html.data.InterfaceData;
 import zq.javafx.jsoup.html.data.RequestParam;
 import zq.javafx.jsoup.html.http.HttpExecute;
@@ -42,7 +47,11 @@ public class HtmlAnalyze extends Application{
 	private static final ObservableList<String> actionData = FXCollections.observableArrayList();		// 接口功能列表
 	private ObservableList<RequestParam> interfaceParam = FXCollections.observableArrayList();	// 接口参数
 	private HashMap<String, InterfaceData> maps = new HashMap<>();
-	private String interfaceKey = "";
+	private String interfaceKey = null;
+	private int WWIDTH = 1080;
+	private int HHEIGHT = 600;
+	private int WWEIGHT[] = {2,3,1};
+	private int HWEIGHT[] = {1,2,1};
 
 	public static void main(String []args){
 		launch(args);
@@ -84,20 +93,32 @@ public class HtmlAnalyze extends Application{
 		);
 		// 执行http请求
 		btnHttp.setOnAction(event -> {
-			if(maps.size()>0){
+			if(null==interfaceKey || interfaceKey.isEmpty()){
+				responseShow.setText("未选中任何接口！");
+			}else{
 				responseShow.setText( HttpExecute.httpPost(getParamAll(), maps.get(interfaceKey).getUrl()) );
 			}
 		});
-
+		
+		searchKey.setPrefWidth(WWIDTH*9/10 - button.getPrefWidth());
 		hBox.getChildren().addAll(searchKey, button);
 		borderPane.setTop(hBox);
 		borderPane.setLeft(actions);		//接口说明
+		actions.setPrefWidth(WWIDTH*WWEIGHT[0]/getSumOfW());
 		borderPane.setCenter(tvParam);		//接口参数
+		tvParam.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW());
 		vBox.getChildren().add(btnHttp);	//提交请求
+		vBox.setPrefWidth(WWIDTH*WWEIGHT[2]/getSumOfW());
+		vBox.setAlignment(Pos.TOP_CENTER);
 		borderPane.setRight(vBox);
+		responseShow.setPrefHeight(HHEIGHT*HWEIGHT[2]/getSumOfH());
+		responseShow.setAlignment(Pos.TOP_LEFT);
+		responseShow.setFont(Font.font(16));
 		borderPane.setBottom(responseShow);
 		
-		Scene scene = new Scene(borderPane, 1080, 600, Color.WHITE);
+		// 布局属性设定
+		
+		Scene scene = new Scene(borderPane, WWIDTH, HHEIGHT, Color.WHITE);
 
 		primaryStage.setScene(scene);
 		primaryStage.show();
@@ -114,6 +135,12 @@ public class HtmlAnalyze extends Application{
 		TableColumn<RequestParam, String> decColume = new TableColumn<>("说明");
 		TableColumn<RequestParam, String> inColume = new TableColumn<>("输入");
 
+		nameColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		typeColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		needColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		decColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		inColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		
 		nameColume.setCellValueFactory(new PropertyValueFactory<>("paramName"));
 		typeColume.setCellValueFactory(new PropertyValueFactory<>("paramType"));
 		needColume.setCellValueFactory(new PropertyValueFactory<>("paramNeeded"));
@@ -208,6 +235,31 @@ public class HtmlAnalyze extends Application{
 		}
 	}
 
+	/**
+	 * 获取宽度权重
+	 * @return
+	 */
+	private int getSumOfW(){
+		int sum = 0;
+		for(int s : WWEIGHT){
+			sum += s;
+		}
+		
+		return sum;
+	}
+	
+	/**
+	 * 获取高度权重
+	 * @return
+	 */
+	private int getSumOfH(){
+		int sum = 0;
+		for(int s:HWEIGHT){
+			sum += s;
+		}
+		return sum;
+	}
+	
 	/**
 	 * 解析html，获得接口请求的描述、请求参数和响应示例
 	 * @param data		文档html内容
