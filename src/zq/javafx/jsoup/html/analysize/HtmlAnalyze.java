@@ -1,6 +1,7 @@
 package zq.javafx.jsoup.html.analysize;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,6 +12,9 @@ import java.util.Map.Entry;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -24,18 +28,16 @@ import javafx.application.Application;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.scene.web.HTMLEditor;
 import javafx.stage.Stage;
-import sun.print.resources.serviceui;
 import zq.javafx.jsoup.html.data.InterfaceData;
 import zq.javafx.jsoup.html.data.RequestParam;
 import zq.javafx.jsoup.html.http.HttpExecute;
@@ -43,7 +45,7 @@ import zq.javafx.jsoup.html.http.HttpExecute;
 public class HtmlAnalyze extends Application{
 	private static Logger logger = Logger.getLogger(HtmlAnalyze.class);
 	private TextField searchKey = null;	//接口搜索关键字
-	private TextField responseShow = null;	//接口响应
+	private TextArea responseShow = null;	//接口响应
 	private static final ObservableList<String> actionData = FXCollections.observableArrayList();		// 接口功能列表
 	private ObservableList<RequestParam> interfaceParam = FXCollections.observableArrayList();	// 接口参数
 	private HashMap<String, InterfaceData> maps = new HashMap<>();
@@ -52,6 +54,7 @@ public class HtmlAnalyze extends Application{
 	private int HHEIGHT = 600;
 	private int WWEIGHT[] = {2,3,1};
 	private int HWEIGHT[] = {1,2,1};
+	private int PARSE_TIMEOUT = 3000;
 
 	public static void main(String []args){
 		launch(args);
@@ -60,21 +63,22 @@ public class HtmlAnalyze extends Application{
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
-		VBox vBox = new VBox();
+		VBox vBox = new VBox(10);
 		HBox hBox = new HBox();
 		TableView<RequestParam> tvParam = new TableView<>(interfaceParam);
 		Button button = new Button("搜索接口");
+		Button btnOnline = new Button("网上获取接口");
 		Button btnHttp = new Button("执行http请求");
 		ListView<String> actions = new ListView<>(actionData);
 		searchKey = new TextField("");
-		responseShow = new TextField("response");
+		responseShow = new TextArea("response");
 
 		// 初始化
 		createTableViewForParam(tvParam);
 		tvParam.setEditable(true);	//列元素可编辑，tableview编辑属性需要设置为true
 
 //		// 接口列表初始化
-		readHtmlForRequest("", 1);
+		readHtmlForRequest(null, 1);
         //填充列表显示的内容,自动刷新
         mapIterateForList(maps, null);
         logger.info("总共有"+maps.size()+"个接口");
@@ -91,6 +95,36 @@ public class HtmlAnalyze extends Application{
 					interfaceKey = new_val;
 				}
 		);
+		// 输入框Enter执行搜索
+		searchKey.setOnKeyPressed( new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER){
+					mapIterateForList(maps, searchKey.getText());
+				}
+			}
+			
+		});
+		// 从网上获取接口
+		btnOnline.setOnAction(event->{
+			try {
+				if(!maps.isEmpty()){
+					maps.clear();
+				}
+				String url = searchKey.getText();
+				if(url.contains("http://")){
+					readHtmlForRequest(new URL(url), 1);
+				}else{
+					readHtmlForRequest(new URL("http://www.baidu.com"), 1);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+	        //填充列表显示的内容,自动刷新
+	        mapIterateForList(maps, null);
+	        logger.info("总共有"+maps.size()+"个接口");
+		});
+		
 		// 执行http请求
 		btnHttp.setOnAction(event -> {
 			if(null==interfaceKey || interfaceKey.isEmpty()){
@@ -107,17 +141,17 @@ public class HtmlAnalyze extends Application{
 		actions.setPrefWidth(WWIDTH*WWEIGHT[0]/getSumOfW());
 		borderPane.setCenter(tvParam);		//接口参数
 		tvParam.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW());
+		vBox.getChildren().add(btnOnline);	//线上获取网址
 		vBox.getChildren().add(btnHttp);	//提交请求
 		vBox.setPrefWidth(WWIDTH*WWEIGHT[2]/getSumOfW());
 		vBox.setAlignment(Pos.TOP_CENTER);
+		vBox.setPadding(new Insets(10,0,0,0));;
 		borderPane.setRight(vBox);
 		responseShow.setPrefHeight(HHEIGHT*HWEIGHT[2]/getSumOfH());
-		responseShow.setAlignment(Pos.TOP_LEFT);
 		responseShow.setFont(Font.font(16));
 		borderPane.setBottom(responseShow);
 		
 		// 布局属性设定
-		
 		Scene scene = new Scene(borderPane, WWIDTH, HHEIGHT, Color.WHITE);
 
 		primaryStage.setScene(scene);
@@ -135,11 +169,12 @@ public class HtmlAnalyze extends Application{
 		TableColumn<RequestParam, String> decColume = new TableColumn<>("说明");
 		TableColumn<RequestParam, String> inColume = new TableColumn<>("输入");
 
-		nameColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
-		typeColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
-		needColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
-		decColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
-		inColume.setPrefWidth(WWIDTH*WWEIGHT[1]/getSumOfW()/5);
+		double TableWidth = WWIDTH*WWEIGHT[1]/getSumOfW();
+		nameColume.setPrefWidth( TableWidth*1.5/10 );
+		typeColume.setPrefWidth( TableWidth/10 );
+		needColume.setPrefWidth( TableWidth/10 );
+		decColume.setPrefWidth( TableWidth*4.5/10 );
+		inColume.setPrefWidth( TableWidth/5 );
 		
 		nameColume.setCellValueFactory(new PropertyValueFactory<>("paramName"));
 		typeColume.setCellValueFactory(new PropertyValueFactory<>("paramType"));
@@ -175,6 +210,11 @@ public class HtmlAnalyze extends Application{
 	 */
 	public void createInterfaceParam(String mapKey) {
 		if( null!= maps.get(mapKey)){
+			//response窗口显示接口详细信息
+			responseShow.setText("接口请求地址URL:"+maps.get(mapKey).getUrl());
+			responseShow.appendText("\r\n接口名称:"+maps.get(mapKey).getMethod());
+			responseShow.appendText("\r\n接口说明:"+maps.get(mapKey).getDescribe());
+			
 			interfaceParam.clear();
 			List<JSONObject> datas = maps.get(mapKey).getRequestBody();
 			for(JSONObject data : datas){
@@ -267,13 +307,23 @@ public class HtmlAnalyze extends Application{
 	 * @return
 	 * @throws JSONException
 	 */
-	public void readHtmlForRequest(String data, int start) throws JSONException{
-		File in = new File("file/HTTP API 接口.html");
+	public void readHtmlForRequest(URL url, int start) throws JSONException{
+		
+		File in = null;
 		Document document = null;
-		try {
-			document = Jsoup.parse(in, "UTF-8");
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(null==url){
+			in = new File("file/HTTP API 接口.html");
+			try {
+				document = Jsoup.parse(in, "UTF-8");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}else{
+			try {
+				document = Jsoup.parse(url, PARSE_TIMEOUT);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		Elements elements = document.getElementsByClass("table-wrap");
 		for(int loop=start; loop<elements.size(); loop++){
